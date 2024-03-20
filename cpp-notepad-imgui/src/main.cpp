@@ -9,8 +9,6 @@ static LPDIRECT3D9				g_pD3D = nullptr;
 static LPDIRECT3DDEVICE9		g_pd3dDevice = nullptr;
 static UINT						g_ResizeWidth = 0, g_ResizeHeight = 0;
 static D3DPRESENT_PARAMETERS	g_d3dpp = {};
-static ImGuiWindowFlags			flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoBackground;
-
 
 // Helper functions
 LRESULT CALLBACK WndProc(HWND hWnd, UINT msg, WPARAM wParam, LPARAM lParam);
@@ -75,7 +73,7 @@ int CALLBACK WinMain(
 	ImGuiIO &io = ImGui::GetIO();
 	// casting to void to avoid unnecessary warning about unused variables
 	(void)io;
-	io.ConfigFlags = ImGuiConfigFlags_NavEnableGamepad | ImGuiConfigFlags_NavEnableKeyboard;
+	io.ConfigFlags = ImGuiConfigFlags_NavEnableKeyboard;
 
 	// Setup ImGui style
 	ImGui::StyleColorsDark();
@@ -86,15 +84,19 @@ int CALLBACK WinMain(
 
 	// Load Fonts
 	io.Fonts->AddFontDefault();
-	// THERE'S SOMETHING WRONG WITH MY FILE I THINK
-	//if ((io.Fonts->AddFontFromFileTTF("fonts/arial.ttf", 16.0f)) == nullptr)
-	//{
-	//	std::cerr << "Error: Failed to load fonts";
-	//	return 1;
-	//}
+	ImFont *fontArial = io.Fonts->AddFontFromFileTTF("src/fonts/arial.ttf", 16.0f);
+	io.Fonts->Build();
+
+	unsigned char* tex_pixels = nullptr;
+	int tex_width, tex_height;
+	io.Fonts->GetTexDataAsRGBA32(&tex_pixels, &tex_width, &tex_height);
 
 	// Define variables
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
+	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove ;// | ImGuiWindowFlags_NoBackground;
+
+	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+	ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 
 	// Main loop
 	bool running = true;
@@ -108,10 +110,20 @@ int CALLBACK WinMain(
 		// Handle window resize
 		if (g_ResizeWidth != 0 && g_ResizeHeight != 0)
 		{
-			g_d3dpp.BackBufferWidth = io.DisplaySize.x = g_ResizeWidth;
-			g_d3dpp.BackBufferHeight = io.DisplaySize.y = g_ResizeHeight;
+			g_d3dpp.BackBufferWidth = g_ResizeWidth;
+			g_d3dpp.BackBufferHeight = g_ResizeHeight;
 			g_ResizeWidth = g_ResizeHeight = 0;
 			ResetDevice();
+
+			#ifdef IMGUI_HAS_VIEWPORT
+			ImGuiViewport* viewport = ImGui::GetMainViewport();
+			ImGui::SetNextWindowPos(viewport->GetWorkPos());
+			ImGui::SetNextWindowSize(viewport->GetWorkSize());
+			ImGui::SetNextWindowViewport(viewport->ID);
+			#else 
+			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
+			ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+			#endif
 		}
 
 		// Start ImGui frame
@@ -119,14 +131,36 @@ int CALLBACK WinMain(
 		ImGui_ImplWin32_NewFrame();
 		ImGui::NewFrame();
 
-		// Show fullscreen window (see WindowFlags in Data section)
-		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
+		ImGui::PushFont(fontArial);
+		ImGui::PushStyleVar(ImGuiStyleVar_WindowRounding, 0.0f);
 
+		// Show menubar
+		if (ImGui::BeginMainMenuBar())
+		{
+			if (ImGui::BeginMenu("File"))
+			{
+				ImGui::EndMenu();
+			}
+			if (ImGui::BeginMenu("Edit"))
+			{
+				if (ImGui::MenuItem("Undo", "CTRL+Z")) {}
+				if (ImGui::MenuItem("Redo", "CTRL+Y", false, false)) {}  // Disabled item
+				ImGui::Separator();
+				if (ImGui::MenuItem("Cut", "CTRL+X")) {}
+				if (ImGui::MenuItem("Copy", "CTRL+C")) {}
+				if (ImGui::MenuItem("Paste", "CTRL+V")) {}
+				ImGui::EndMenu();
+			}
+			ImGui::EndMainMenuBar();
+		}
+
+		// Show fullscreen window (see WindowFlags in Data section)
 		ImGui::Begin("Fullscreen", nullptr, flags);
 		ImGui::Text("Hello World!");
 		ImGui::End();
 
+		ImGui::PopFont();
+		ImGui::PopStyleVar();
 
 		// Rendering
 		ImGui::EndFrame();
