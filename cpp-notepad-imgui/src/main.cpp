@@ -2,7 +2,6 @@
 #include <imgui_impl_dx9.h>
 #include <imgui_impl_win32.h>
 #include <d3d9.h>
-#include <iostream>
 
 // Data
 static LPDIRECT3D9				g_pD3D = nullptr;
@@ -95,8 +94,6 @@ int CALLBACK WinMain(
 	ImVec4 clear_color = ImVec4(0.45f, 0.55f, 0.60f, 1.00f);
 	ImGuiWindowFlags flags = ImGuiWindowFlags_NoTitleBar | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_NoMove ;// | ImGuiWindowFlags_NoBackground;
 
-	ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-	ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 
 	// Main loop
 	bool running = true;
@@ -112,19 +109,14 @@ int CALLBACK WinMain(
 		{
 			g_d3dpp.BackBufferWidth = g_ResizeWidth;
 			g_d3dpp.BackBufferHeight = g_ResizeHeight;
+			io.DisplaySize.x = g_ResizeWidth;
+			io.DisplaySize.y = g_ResizeHeight;
 			g_ResizeWidth = g_ResizeHeight = 0;
 			ResetDevice();
-
-			#ifdef IMGUI_HAS_VIEWPORT
-			ImGuiViewport* viewport = ImGui::GetMainViewport();
-			ImGui::SetNextWindowPos(viewport->GetWorkPos());
-			ImGui::SetNextWindowSize(viewport->GetWorkSize());
-			ImGui::SetNextWindowViewport(viewport->ID);
-			#else 
-			ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f));
-			ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
-			#endif
 		}
+
+		ImGui::SetNextWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize, ImGuiCond_FirstUseEver);
 
 		// Start ImGui frame
 		ImGui_ImplDX9_NewFrame();
@@ -155,6 +147,8 @@ int CALLBACK WinMain(
 		}
 
 		// Show fullscreen window (see WindowFlags in Data section)
+		ImGui::SetWindowPos(ImVec2(0.0f, 0.0f), ImGuiCond_FirstUseEver);
+		ImGui::SetWindowSize(ImGui::GetIO().DisplaySize, ImGuiCond_FirstUseEver);
 		ImGui::Begin("Fullscreen", nullptr, flags);
 		ImGui::Text("Hello World!");
 		ImGui::End();
